@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Clower Edit · Admin</title>
   <link rel="stylesheet" href="/assets/admin.css" />
+  <style>
+    [x-cloak] { display: none !important; }
+  </style>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script type="module" src="./main.js"></script>
 </head>
@@ -21,7 +24,7 @@
       </nav>
     </aside>
     <main class="bg-white p-6" x-cloak>
-      <header class="flex justify-between items-center">
+      <header class="flex justify-between items-center" x-show="view !== 'login'">
         <h2 class="text-2xl font-display capitalize" x-text="view"></h2>
         <button class="px-4 py-2 bg-slate-900 text-white rounded" @click="refreshData">Actualiser</button>
       </header>
@@ -146,9 +149,12 @@
         </div>
         <p class="text-sm text-slate-500">Les identifiants sont stockés localement dans settings.json. Assurez-vous que votre serveur accepte la connexion SFTP.</p>
       </section>
-      <section class="mt-6" x-show="view === 'login'">
-        <div class="max-w-sm mx-auto bg-white border rounded p-6 shadow" x-data="loginForm()">
+      <section class="mt-6 flex items-center justify-center" x-show="view === 'login'">
+        <div class="max-w-sm w-full bg-white border rounded p-6 shadow" x-data="loginForm()">
           <h2 class="text-xl font-semibold mb-4">Connexion</h2>
+          <p class="text-sm text-slate-600 mb-4">
+            Identifiants par défaut : <span class="font-semibold">admin</span> / <span class="font-semibold">admin</span>. Pensez à les modifier dans l’onglet « Paramètres » après connexion.
+          </p>
           <div class="space-y-3">
             <input type="text" class="w-full border rounded px-3 py-2" placeholder="Identifiant" x-model="username" />
             <input type="password" class="w-full border rounded px-3 py-2" placeholder="Mot de passe" x-model="password" />

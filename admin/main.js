@@ -18,11 +18,9 @@ export function adminApp() {
 
   const actions = {
     async init() {
-      if (api.hasToken()) {
+      state.view = api.hasToken() ? 'pages' : 'login';
+      if (state.view === 'pages') {
         await actions.refreshData();
-        state.view = 'pages';
-      } else {
-        state.view = 'login';
       }
     },
     async refreshData() {
@@ -54,6 +52,8 @@ export function adminApp() {
       } catch (error) {
         console.error(error);
         state.view = 'login';
+        state.pages = [];
+        state.currentPage = null;
       }
     },
     async loadPage(slug) {
