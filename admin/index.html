@@ -12,7 +12,12 @@
   <script type="module" src="./main.js"></script>
 </head>
 <body class="font-body">
-  <div class="min-h-screen grid grid-cols-1 md:grid-cols-[260px_1fr]" x-data="adminApp()" @view-change.window="view = $event.detail">
+  <div
+    class="min-h-screen grid grid-cols-1 md:grid-cols-[260px_1fr]"
+    x-data="adminApp()"
+    x-init="init()"
+    @view-change.window="view = $event.detail"
+  >
     <aside class="bg-slate-900 text-white p-6 space-y-6" x-cloak x-show="view !== 'login'">
       <h1 class="text-2xl font-display">Clower Edit</h1>
       <nav class="flex flex-col space-y-2" x-data>

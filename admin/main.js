@@ -4,65 +4,89 @@ import { initSettings } from './settings.js';
 import { initPreview } from './preview.js';
 
 export function adminApp() {
-  const state = {
+  return {
     view: 'login',
     pages: [],
     currentPage: null,
     theme: initTheme(),
     settings: initSettings(),
-    previewUrl: '/index.html'
-  };
+    previewUrl: '/index.html',
+    api: createApiClient(),
+    broadcast: () => {},
 
-  const api = createApiClient();
-  const broadcast = initPreview();
-
-  const actions = {
     async init() {
-      state.view = api.hasToken() ? 'pages' : 'login';
-      if (state.view === 'pages') {
-        await actions.refreshData();
+      try {
+        this.broadcast = initPreview();
+      } catch (error) {
+        console.warn('Preview indisponible', error);
+        this.broadcast = () => {};
       }
+
+      if (!this.api.hasToken()) {
+        this.view = 'login';
+        return;
+      }
+
+      this.view = 'pages';
+      await this.refreshData();
     },
+
     async refreshData() {
       try {
         const [pages, theme, settings] = await Promise.all([
-          api.get('/pages'),
-          api.get('/theme'),
-          api.get('/settings')
+          this.api.get('/pages'),
+          this.api.get('/theme'),
+          this.api.get('/settings')
         ]);
-        state.pages = pages;
-        state.theme = initTheme(theme);
-        state.settings = {
+
+        this.pages = pages;
+        this.theme = initTheme(theme);
+        this.settings = {
           ...initSettings(),
           ...settings,
           admin: { ...settings.admin, password: '' }
         };
-        const previousSlug = state.currentPage?.slug;
+
+        const previousSlug = this.currentPage?.slug;
         if (previousSlug) {
           const match = pages.find(p => p.slug === previousSlug);
           if (match) {
-            state.currentPage = { ...JSON.parse(JSON.stringify(match)), originalSlug: match.slug };
-            state.previewUrl = buildPreviewUrl(match.slug);
+            this.currentPage = {
+              ...JSON.parse(JSON.stringify(match)),
+              originalSlug: match.slug
+            };
+            this.previewUrl = buildPreviewUrl(match.slug);
           }
         }
-        if (!state.currentPage && pages.length) {
-          state.currentPage = { ...JSON.parse(JSON.stringify(pages[0])), originalSlug: pages[0].slug };
-          state.previewUrl = buildPreviewUrl(state.currentPage.slug);
+
+        if (!this.currentPage && pages.length) {
+          this.currentPage = {
+            ...JSON.parse(JSON.stringify(pages[0])),
+            originalSlug: pages[0].slug
+          };
+          this.previewUrl = buildPreviewUrl(this.currentPage.slug);
         }
       } catch (error) {
         console.error(error);
-        state.view = 'login';
-        state.pages = [];
-        state.currentPage = null;
+        this.resetToLogin();
       }
     },
-    async loadPage(slug) {
-      const page = await api.get(`/pages/${slug}`);
-      state.currentPage = { ...page, originalSlug: page.slug };
-      state.previewUrl = buildPreviewUrl(slug);
+
+    resetToLogin() {
+      this.view = 'login';
+      this.pages = [];
+      this.currentPage = null;
+      this.previewUrl = '/index.html';
     },
+
+    async loadPage(slug) {
+      const page = await this.api.get(`/pages/${slug}`);
+      this.currentPage = { ...page, originalSlug: page.slug };
+      this.previewUrl = buildPreviewUrl(slug);
+    },
+
     createBlankPage() {
-      state.currentPage = {
+      this.currentPage = {
         title: 'Nouvelle page',
         slug: `page-${Date.now()}`,
         sections: [
@@ -71,59 +95,67 @@ export function adminApp() {
         originalSlug: null
       };
     },
+
     addSection(type) {
-      if (!state.currentPage) return;
-      state.currentPage.sections.push(initEditor(type));
+      if (!this.currentPage) return;
+      this.currentPage.sections.push(initEditor(type));
     },
+
     removeSection(index) {
-      if (!state.currentPage) return;
-      state.currentPage.sections.splice(index, 1);
+      if (!this.currentPage) return;
+      this.currentPage.sections.splice(index, 1);
     },
+
     async savePage() {
-      const payload = JSON.parse(JSON.stringify(state.currentPage));
+      const payload = JSON.parse(JSON.stringify(this.currentPage));
       const originalSlug = payload.originalSlug;
       delete payload.originalSlug;
       const method = originalSlug ? 'put' : 'post';
       const endpoint = method === 'post' ? '/pages' : `/pages/${originalSlug}`;
-      await api[method](endpoint, payload);
-      await actions.refreshData();
-      broadcast();
+      await this.api[method](endpoint, payload);
+      await this.refreshData();
+      this.broadcast();
     },
+
     async deletePage() {
-      if (!state.currentPage || state.currentPage.slug === 'index') return;
+      if (!this.currentPage || this.currentPage.slug === 'index') return;
       if (!confirm('Supprimer cette page ?')) return;
-      const targetSlug = state.currentPage.originalSlug || state.currentPage.slug;
-      await api.delete(`/pages/${targetSlug}`);
-      state.currentPage = null;
-      await actions.refreshData();
-      broadcast();
+      const targetSlug = this.currentPage.originalSlug || this.currentPage.slug;
+      await this.api.delete(`/pages/${targetSlug}`);
+      this.currentPage = null;
+      await this.refreshData();
+      this.broadcast();
     },
+
     async saveTheme() {
-      await api.put('/theme', state.theme);
-      await actions.refreshData();
-      broadcast();
+      await this.api.put('/theme', this.theme);
+      await this.refreshData();
+      this.broadcast();
     },
+
     async saveSettings(showAlert = true) {
-      await api.put('/settings', state.settings);
+      await this.api.put('/settings', this.settings);
       if (showAlert) {
         alert('Paramètres enregistrés');
       }
     },
+
     async triggerBuild() {
       try {
-        await api.post('/generate');
+        await this.api.post('/generate');
         alert('Site généré');
-        broadcast();
+        this.broadcast();
       } catch (error) {
-        alert("Erreur lors de la génération");
+        alert('Erreur lors de la génération');
         console.error(error);
       }
     },
+
     async triggerDeploy() {
       try {
-        await actions.saveSettings(false);
-        await api.post('/generate');
-        await api.post('/deploy');
+        await this.saveSettings(false);
+        await this.api.post('/generate');
+        await this.api.post('/deploy');
         alert('Déploiement lancé');
       } catch (error) {
         alert('Déploiement échoué, consultez la console');
@@ -131,11 +163,6 @@ export function adminApp() {
       }
     }
   };
-
-  Object.assign(state, actions);
-  actions.init();
-
-  return state;
 }
 
 export function loginForm() {
@@ -146,7 +173,10 @@ export function loginForm() {
     error: '',
     async login() {
       try {
-        const { token } = await api.post('/login', { username: this.username, password: this.password });
+        const { token } = await api.post('/login', {
+          username: this.username,
+          password: this.password
+        });
         api.setToken(token);
         window.location.reload();
       } catch (error) {
