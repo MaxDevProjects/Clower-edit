@@ -1,0 +1,7 @@
+<section class="section-wrapper hero">
+  <h1>{{ section.props.title }}</h1>
+  <p>{{ section.props.subtitle }}</p>
+  {% if section.props.cta %}
+    <a class="btn-primary" href="{{ section.props.ctaLink or '#' }}">{{ section.props.cta }}</a>
+  {% endif %}
+</section>
