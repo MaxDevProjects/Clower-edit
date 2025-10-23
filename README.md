@@ -40,6 +40,20 @@ npm install
 4. Modifiez les couleurs et polices dans l'onglet Thème.
 5. Renseignez vos informations FTP/SFTP dans l'onglet Paramètres puis utilisez l'onglet Déploiement.
 
+### Lancement dans GitHub Codespaces
+
+1. Créez un nouveau Codespace sur ce dépôt et attendez l'ouverture de VS Code dans le navigateur.
+2. Ouvrez un terminal intégré puis installez les dépendances :
+   ```bash
+   npm install
+   ```
+3. Démarrez le serveur de développement :
+   ```bash
+   npm run dev
+   ```
+4. Dans l'onglet **Ports** de Codespaces, repérez le port `3000` et cliquez sur l'URL exposée pour ouvrir l'interface d'administration dans un nouvel onglet.
+5. Identifiez-vous avec `admin` / `admin` puis éditez le contenu comme décrit ci-dessus.
+
 ## Structure du projet
 
 ```
