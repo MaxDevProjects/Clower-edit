@@ -1,0 +1,14 @@
+{
+  "admin": {
+    "username": "admin",
+    "passwordHash": "$2b$10$3yE8x7BqXc9E8iXzG/5RMe3wYuxcBIszgTZZdsNCXp4Pojw4JHWhe"
+  },
+  "deployment": {
+    "host": "",
+    "username": "",
+    "password": "",
+    "remotePath": "",
+    "port": 22
+  },
+  "autoDeploy": false
+}
