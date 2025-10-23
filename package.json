@@ -1,0 +1,27 @@
+{
+  "name": "clower-edit",
+  "version": "1.0.0",
+  "description": "Clower Edit V1 - low tech CMS for static site generation",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm:serve\" \"npm:tailwind:watch\"",
+    "serve": "NODE_ENV=development node server.js",
+    "tailwind:watch": "tailwindcss -c tailwind.config.js -i ./admin/styles.css -o ./public/assets/admin.css --watch",
+    "build:css": "tailwindcss -c tailwind.config.js -i ./admin/styles.css -o ./public/assets/admin.css",
+    "build": "npm run build:css && node backend/generate.js",
+    "deploy": "node backend/deploy.js"
+  },
+  "dependencies": {
+    "alpinejs": "^3.13.10",
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.2",
+    "concurrently": "^8.2.2",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "nunjucks": "^3.2.4",
+    "ssh2-sftp-client": "^10.0.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.13"
+  }
+}

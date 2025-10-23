@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clower Edit · Admin</title>
+  <link rel="stylesheet" href="/assets/admin.css" />
+  <style>
+    [x-cloak] { display: none !important; }
+  </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script type="module" src="./main.js"></script>
+</head>
+<body class="font-body">
+  <div class="min-h-screen grid grid-cols-1 md:grid-cols-[260px_1fr]" x-data="adminApp()" @view-change.window="view = $event.detail">
+    <aside class="bg-slate-900 text-white p-6 space-y-6" x-cloak x-show="view !== 'login'">
+      <h1 class="text-2xl font-display">Clower Edit</h1>
+      <nav class="flex flex-col space-y-2" x-data>
+        <button class="text-left px-3 py-2 rounded hover:bg-slate-700" @click="$dispatch('view-change', 'pages')">📄 Pages</button>
+        <button class="text-left px-3 py-2 rounded hover:bg-slate-700" @click="$dispatch('view-change', 'theme')">🎨 Thème</button>
+        <button class="text-left px-3 py-2 rounded hover:bg-slate-700" @click="$dispatch('view-change', 'settings')">⚙️ Paramètres</button>
+        <button class="text-left px-3 py-2 rounded hover:bg-slate-700" @click="$dispatch('view-change', 'deploy')">🚀 Déploiement</button>
+        <button class="text-left px-3 py-2 rounded hover:bg-slate-700" @click="localStorage.removeItem('clowerToken'); window.location.reload();">🔒 Déconnexion</button>
+      </nav>
+    </aside>
+    <main class="bg-white p-6" x-cloak>
+      <header class="flex justify-between items-center" x-show="view !== 'login'">
+        <h2 class="text-2xl font-display capitalize" x-text="view"></h2>
+        <button class="px-4 py-2 bg-slate-900 text-white rounded" @click="refreshData">Actualiser</button>
+      </header>
+      <section class="mt-6" x-show="view === 'pages'">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold">Pages</h3>
+          <button class="px-4 py-2 bg-emerald-500 text-white rounded" @click="createBlankPage">Nouvelle page</button>
+        </div>
+        <div class="grid md:grid-cols-[280px_1fr] gap-6">
+          <div class="space-y-2">
+            <template x-for="page in pages" :key="page.slug">
+              <button class="w-full text-left px-3 py-2 rounded border border-slate-200 hover:bg-slate-100" :class="{ 'bg-slate-900 text-white': currentPage?.slug === page.slug }" @click="loadPage(page.slug)">
+                <div class="font-semibold" x-text="page.title"></div>
+                <div class="text-xs text-slate-500" x-text="page.slug"></div>
+              </button>
+            </template>
+          </div>
+          <div class="space-y-4" x-show="currentPage">
+            <div class="grid gap-2">
+              <label class="text-sm font-semibold">Titre</label>
+              <input type="text" class="border rounded px-3 py-2" x-model="currentPage.title" />
+            </div>
+            <div class="grid gap-2">
+              <label class="text-sm font-semibold">Slug</label>
+              <input type="text" class="border rounded px-3 py-2" x-model="currentPage.slug" />
+            </div>
+            <div>
+              <label class="text-sm font-semibold">Sections</label>
+              <template x-for="(section, index) in currentPage.sections" :key="index">
+                <div class="border rounded p-4 space-y-2 mt-3">
+                  <div class="flex justify-between items-center">
+                    <span class="font-semibold" x-text="section.type"></span>
+                    <button class="text-sm text-red-500" @click="removeSection(index)">Supprimer</button>
+                  </div>
+                  <textarea class="w-full border rounded px-3 py-2 text-sm" rows="4" x-model="section.props.content" x-show="section.type === 'text'"></textarea>
+                  <div class="grid gap-2" x-show="section.type === 'hero'">
+                    <input class="border rounded px-3 py-2" placeholder="Titre" x-model="section.props.title" />
+                    <input class="border rounded px-3 py-2" placeholder="Sous-titre" x-model="section.props.subtitle" />
+                    <input class="border rounded px-3 py-2" placeholder="Texte bouton" x-model="section.props.cta" />
+                    <input class="border rounded px-3 py-2" placeholder="Lien" x-model="section.props.ctaLink" />
+                  </div>
+                  <div class="grid gap-2" x-show="section.type === 'image'">
+                    <input class="border rounded px-3 py-2" placeholder="URL" x-model="section.props.src" />
+                    <input class="border rounded px-3 py-2" placeholder="Texte alternatif" x-model="section.props.alt" />
+                    <input class="border rounded px-3 py-2" placeholder="Légende" x-model="section.props.caption" />
+                  </div>
+                </div>
+              </template>
+              <div class="flex gap-2 mt-3">
+                <button class="px-3 py-2 bg-slate-200 rounded" @click="addSection('text')">+ Texte</button>
+                <button class="px-3 py-2 bg-slate-200 rounded" @click="addSection('hero')">+ Hero</button>
+                <button class="px-3 py-2 bg-slate-200 rounded" @click="addSection('image')">+ Image</button>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button class="px-4 py-2 bg-emerald-500 text-white rounded" @click="savePage">Sauvegarder</button>
+              <button class="px-4 py-2 bg-red-500 text-white rounded" @click="deletePage" x-show="currentPage?.slug !== 'index'">Supprimer</button>
+            </div>
+          </div>
+          <div class="border rounded overflow-hidden" x-show="currentPage">
+            <iframe class="w-full h-[600px]" :src="previewUrl" loading="lazy"></iframe>
+          </div>
+        </div>
+      </section>
+      <section class="mt-6 space-y-4" x-show="view === 'theme'">
+        <h3 class="text-xl font-semibold">Thème</h3>
+        <template x-if="theme">
+          <div class="grid gap-4 md:grid-cols-2">
+            <template x-for="(value, key) in theme.colors" :key="key">
+              <div class="flex items-center gap-3">
+                <label class="w-32 capitalize" x-text="key"></label>
+                <input type="color" class="w-16 h-10 border rounded" x-model="theme.colors[key]" />
+              </div>
+            </template>
+            <template x-for="(value, key) in theme.fonts" :key="key">
+              <div class="flex items-center gap-3">
+                <label class="w-32 capitalize" x-text="key"></label>
+                <input type="text" class="flex-1 border rounded px-3 py-2" x-model="theme.fonts[key]" />
+              </div>
+            </template>
+            <template x-for="(value, key) in theme.radius" :key="key">
+              <div class="flex items-center gap-3">
+                <label class="w-32 capitalize" x-text="key"></label>
+                <input type="text" class="flex-1 border rounded px-3 py-2" x-model="theme.radius[key]" />
+              </div>
+            </template>
+          </div>
+        </template>
+        <button class="px-4 py-2 bg-emerald-500 text-white rounded" @click="saveTheme">Sauvegarder le thème</button>
+      </section>
+      <section class="mt-6 space-y-4" x-show="view === 'settings'">
+        <h3 class="text-xl font-semibold">Paramètres</h3>
+        <div class="grid gap-4 md:grid-cols-2">
+          <div class="space-y-2">
+            <label class="font-semibold">Identifiant</label>
+            <input type="text" class="border rounded px-3 py-2" x-model="settings.admin.username" />
+          </div>
+          <div class="space-y-2">
+            <label class="font-semibold">Nouveau mot de passe</label>
+            <input type="password" class="border rounded px-3 py-2" x-model="settings.admin.password" placeholder="Laisser vide pour conserver" />
+          </div>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" x-model="settings.autoDeploy" />
+            Auto-déploiement après build
+          </label>
+        </div>
+        <button class="px-4 py-2 bg-emerald-500 text-white rounded" @click="saveSettings">Sauvegarder</button>
+      </section>
+      <section class="mt-6 space-y-4" x-show="view === 'deploy'">
+        <h3 class="text-xl font-semibold">Déploiement FTP/SFTP</h3>
+        <div class="grid gap-4 md:grid-cols-2">
+          <template x-for="field in ['host','port','username','password','remotePath']" :key="field">
+            <div class="space-y-2">
+              <label class="font-semibold capitalize" x-text="field"></label>
+              <input :type="field === 'password' ? 'password' : 'text'" class="border rounded px-3 py-2" x-model="settings.deployment[field]" />
+            </div>
+          </template>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-4 py-2 bg-emerald-500 text-white rounded" @click="triggerBuild">Générer</button>
+          <button class="px-4 py-2 bg-slate-900 text-white rounded" @click="triggerDeploy">Déployer</button>
+        </div>
+        <p class="text-sm text-slate-500">Les identifiants sont stockés localement dans settings.json. Assurez-vous que votre serveur accepte la connexion SFTP.</p>
+      </section>
+      <section class="mt-6 flex items-center justify-center" x-show="view === 'login'">
+        <div class="max-w-sm w-full bg-white border rounded p-6 shadow" x-data="loginForm()">
+          <h2 class="text-xl font-semibold mb-4">Connexion</h2>
+          <p class="text-sm text-slate-600 mb-4">
+            Identifiants par défaut : <span class="font-semibold">admin</span> / <span class="font-semibold">admin</span>. Pensez à les modifier dans l’onglet « Paramètres » après connexion.
+          </p>
+          <div class="space-y-3">
+            <input type="text" class="w-full border rounded px-3 py-2" placeholder="Identifiant" x-model="username" />
+            <input type="password" class="w-full border rounded px-3 py-2" placeholder="Mot de passe" x-model="password" />
+            <button class="w-full bg-slate-900 text-white rounded px-3 py-2" @click="login">Se connecter</button>
+            <p class="text-sm text-red-500" x-text="error"></p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
